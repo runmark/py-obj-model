@@ -28,6 +28,21 @@ class _Class(_Base):
             self._base = base
         self.name = name
 
+    # def get_attr(self, name: str):
+    #     value = self.read_attr(name)
+    #     if value is not MISSING:
+    #         return value
+    #     elif self._base == None:
+    #         raise AttributeError(f"'{self.cls.name}' has no attribute {name}")
+    #     else:
+    #         return self._base.get_attr(name)
+
+    def read_attr(self, name: str):
+        value = super().read_attr(name)
+        if value is not MISSING:
+            return value
+        return self._base.read_attr(name) if self._base else MISSING
+
     def is_instance(self, cls):
         return cls is Type
 
@@ -47,10 +62,13 @@ class _Instance(_Base):
 
     def get_attr(self, name: str):
         value = self.read_attr(name)
-        if value is not MISSING:
-            return value
-        value = self.cls.read_attr(name)
-        if value is not MISSING:
+        if value is MISSING:
+            value = self.cls.read_attr(name)
+        if value is MISSING:
+            raise AttributeError(f"'{self.cls.name}' has no attribute {name}")
+        if callable(value):
+            return self.make_bound_method(value)
+        else:
             return value
 
         raise AttributeError(f"'{self.cls.name}' has no attribute {name}")
@@ -58,6 +76,16 @@ class _Instance(_Base):
     def is_instance(self, cls):
         # print(list(self.cls.inheritance_hierarchy()))
         return cls in self.cls.inheritance_hierarchy()
+
+    def make_bound_method(self, func):
+        def method(*args, **kwargs):
+            return func(self, *args, **kwargs)
+
+        return method
+
+    def call_method(self, func_name, *args, **kwargs):
+        method = self.get_attr(func_name)
+        return method(*args, **kwargs)
 
 
 def define_class(

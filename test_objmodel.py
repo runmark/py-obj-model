@@ -136,3 +136,80 @@ class ObjModelTest(unittest.TestCase):
         B = define_class(name="B", base=A)
         self.assertTrue(is_instance(B, Type))
         self.assertTrue(is_instance(A, Type))
+
+    def test_call_method(self):
+        # Python
+        class A:
+            def f(self):
+                return self.x + 1
+
+        obj = A()
+        obj.x = 1
+        self.assertEqual(2, obj.f())
+
+        class B(A):
+            pass
+
+        obj = B()
+        obj.x = 2
+        self.assertEqual(3, obj.f())
+
+        # Object Model
+        def f_A(self):
+            return self.get_attr("x") + 1
+
+        A = define_class(name="A", fields={"f": f_A})
+        obj = create_instance(A)
+        obj.set_attr("x", 1)
+        self.assertEqual(2, obj.call_method("f"))
+
+        B = define_class(name="B", base=A)
+        obj = create_instance(B)
+        obj.set_attr("x", 2)
+        self.assertEqual(3, obj.call_method("f"))
+
+    def test_call_method_with_args(self):
+        # Python
+        class A:
+            def f(self, delta):
+                return self.x + delta
+
+        obj = A()
+        obj.x = 1
+        self.assertEqual(3, obj.f(2))
+
+        # Object Model
+        def f_A(self, delta):
+            return self.get_attr("x") + delta
+
+        A = define_class(name="A", fields={"f": f_A})
+        obj = create_instance(A)
+        obj.set_attr("x", 1)
+        self.assertEqual(3, obj.call_method("f", 2))
+
+    def test_call_method_by_attr(self):
+        # Python
+        class A:
+            def f(self):
+                return self.x + 1
+
+        obj = A()
+        obj.x = 1
+        method = obj.f
+        self.assertEqual(2, method())
+
+        # Object Model
+        def f_A(self):
+            return self.get_attr("x") + 1
+
+        A = define_class(name="A", fields={"f": f_A})
+        obj = create_instance(A)
+        obj.set_attr("x", 1)
+        method = obj.get_attr("f")
+        self.assertEqual(2, method())
+
+        B = define_class("B", A)
+        ob = create_instance(B)
+        ob.set_attr("x", 1)
+        method = ob.get_attr("f")
+        self.assertEqual(2, method())
