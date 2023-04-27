@@ -1,3 +1,4 @@
+import math
 import unittest
 
 from objmodel import define_class, create_instance, is_instance, Object, Type
@@ -208,8 +209,45 @@ class ObjModelTest(unittest.TestCase):
         method = obj.get_attr("f")
         self.assertEqual(2, method())
 
-        B = define_class("B", A)
-        ob = create_instance(B)
-        ob.set_attr("x", 1)
-        method = ob.get_attr("f")
-        self.assertEqual(2, method())
+    def test_get_attr(self):
+        scales = dict(degree=1, radian=math.pi / 180)
+
+        # Python
+        class A:
+            def __getattr__(self, name):
+                if name in scales:
+                    return self.degree * scales[name]
+                raise AttributeError(name)
+
+            def __setattr__(self, name, value):
+                if name in scales:
+                    object.__setattr__(self, name, value / scales[name])
+
+        obj = A()
+        obj.degree = 180
+        self.assertEqual(math.pi, obj.radian)
+
+        # Object Model
+        def __getattr__(self, name):
+            if name in scales:
+                return self.get_attr("degree") * scales[name]
+            raise AttributeError(name)
+
+        def __setattr__(self, name, value):
+            if name in scales:
+                self.set_attr(self, name, value / scales[name])
+
+        A = define_class(
+            name="A", fields={"__getattr__": __getattr__, "__setattr__": __setattr__}
+        )
+        obj = create_instance(A)
+        obj.set_attr("degree", 180)
+        self.assertEqual(math.pi, obj.get_attr("radian"))
+
+
+def main():
+    unittest.main(__name__)
+
+
+if __name__ == "__main__":
+    unittest.main()

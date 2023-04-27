@@ -65,17 +65,27 @@ class _Instance(_Base):
         if value is MISSING:
             value = self.cls.read_attr(name)
         if value is MISSING:
+            default_getter = self.cls.read_attr("__getattr__")
+            if default_getter is not MISSING:
+                return default_getter(self, name)
+        if value is MISSING:
             raise AttributeError(f"'{self.cls.name}' has no attribute {name}")
         if callable(value):
             return self.make_bound_method(value)
         else:
             return value
 
-        raise AttributeError(f"'{self.cls.name}' has no attribute {name}")
+        # raise AttributeError(f"'{self.cls.name}' has no attribute {name}")
 
     def is_instance(self, cls):
         # print(list(self.cls.inheritance_hierarchy()))
         return cls in self.cls.inheritance_hierarchy()
+
+    def set_attr(self, name: str, value):
+        default_setter = self.cls.read_attr("__setattr__")
+        if default_setter is not MISSING:
+            return default_setter(name, value)
+        return super().set_attr(name, value)
 
     def make_bound_method(self, func):
         def method(*args, **kwargs):
