@@ -1,20 +1,59 @@
 MISSING = object()
 
 
+class AttrMap:
+    def __init__(self, attrs: dict):
+        self._attrs = attrs
+        self._next = {}
+
+    def index_of(self, name):
+        return self._attrs.get(name, -1)
+
+    def next(self, name):
+        if name in self._attrs:
+            return self
+        if name in self._next:
+            return self._next[name]
+        attrs = self._attrs.copy()
+        attrs[name] = len(attrs)
+        new_map = AttrMap(attrs)
+        self._next[name] = new_map
+        return new_map
+
+
+EMPTY_MAP = AttrMap({})
+
+
 class _Base:
     def __init__(self, fields: dict = None):
-        self._fields = fields or {}
+        self._map = EMPTY_MAP
+        self._values = []
+        if fields:
+            for k, v in fields.items():
+                self.set_attr(k, v)
+        # self._fields = fields or {}
 
     def get_attr(self, name: str):
-        if name not in self._fields:
+        # if name not in self._fields:
+        if name not in self._map._attrs:
             raise AttributeError(f"'{self.cls.name}' has no attribute {name}")
         return self.read_attr(name)
 
     def read_attr(self, name: str):
-        return self._fields.get(name, MISSING)
+        index = self._map.index_of(name)
+        if index < 0:
+            return MISSING
+        return self._values[index]
+        # return self._fields.get(name, MISSING)
 
     def set_attr(self, name: str, value):
-        self._fields[name] = value
+        # self._fields[name] = value
+        index = self._map.index_of(name)
+        if index < 0:
+            self._map = self._map.next(name)
+            self._values.append(value)
+        else:
+            self._values[index] = value
 
 
 class _Class(_Base):
@@ -82,7 +121,7 @@ class _Instance(_Base):
         return cls in self.cls.inheritance_hierarchy()
 
     def set_attr(self, name: str, value):
-        default_setter = self.cls.read_attr("__setattr__")
+        default_setter = self.cls.read_attr("__setter__")
         if default_setter is not MISSING:
             return default_setter(name, value)
         return super().set_attr(name, value)

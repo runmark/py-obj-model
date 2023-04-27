@@ -244,6 +244,26 @@ class ObjModelTest(unittest.TestCase):
         obj.set_attr("degree", 180)
         self.assertEqual(math.pi, obj.get_attr("radian"))
 
+    def test_use_map(self):
+        Point = define_class(name="Point")
+        p1 = create_instance(Point)
+        p1.set_attr("x", 1)
+        p1.set_attr("y", 2)
+        self.assertEqual([1, 2], p1._values)
+        self.assertEqual({"x": 0, "y": 1}, p1._map._attrs)
+
+        p2 = create_instance(Point)
+        p2.set_attr("x", 5)
+        p2.set_attr("y", 6)
+        self.assertEqual([5, 6], p2._values)
+        self.assertIs(p1._map, p2._map)
+
+        p3 = create_instance(Point)
+        p3.set_attr("x", 100)
+        p3.set_attr("z", -343)
+        self.assertEqual({"x": 0, "z": 1}, p3._map._attrs)
+        self.assertIsNot(p1._map, p3._map)
+
 
 def main():
     unittest.main(__name__)
